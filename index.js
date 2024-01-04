@@ -4,7 +4,7 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(express.json());
@@ -22,10 +22,8 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-
     const noteCollection = client.db("Note-App").collection("notes");
 
-  
     //post note
     app.post("/notes", async (req, res) => {
       try {
@@ -40,37 +38,13 @@ async function run() {
     //get note for  specific user
     app.get("/notes", async (req, res) => {
       try {
-        let query = {};
-        if (req.query?.email) {
-          query = { email: req.query.email };
-        }
-        const result = await noteCollection.find(query).toArray();
+        const result = await noteCollection
+          .find()
+          .sort({ noteAddedTime: -1 })
+          .toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
-      }
-    });
-
-    //get notification
-    app.get("/notification", async (req, res) => {
-      try {
-        let query = {};
-        if (req.query?.email) {
-          query = { email: req.query.email };
-        }
-
-        const notes = await noteCollection.find(query).toArray();
-
-        const sortednotes = notes.sort(
-          (a, b) => new Date(b.deadline) - new Date(a.deadline)
-        );
-
-        const mostRecentnote = sortednotes[0];
-
-        res.send({ mostRecentnote });
-      } catch (error) {
-        console.log(error);
-        res.status(500).send({ error: "Internal Server Error" });
       }
     });
 
@@ -96,32 +70,12 @@ async function run() {
           $set: {
             title: note.title,
             description: note.description,
-            deadline: note.deadline,
-            priority: note.priority,
+            noteLastUpdated: note.noteLastUpdated,
           },
         };
         console.log(updatedDoc);
         const result = await noteCollection.updateOne(filter, updatedDoc);
         console.log(result);
-        res.send(result);
-      } catch (error) {
-        console.log(error);
-      }
-    });
-
-    //update a note status
-    app.put("/update-status/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
-        const { status } = req.body;
-        console.log(status);
-        const updatedDoc = {
-          $set: {
-            status: status,
-          },
-        };
-        const result = await noteCollection.updateOne(filter, updatedDoc);
         res.send(result);
       } catch (error) {
         console.log(error);
